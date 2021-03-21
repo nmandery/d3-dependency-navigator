@@ -13,7 +13,7 @@ export interface Link {
     type: string
 }
 
-export interface Graph {
+export interface GraphData {
     nodes: Node[],
     links: Link[]
 }

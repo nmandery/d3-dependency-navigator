@@ -14,7 +14,7 @@
 <script lang="ts">
     import * as d3 from 'd3';
     import {onMount} from 'svelte';
-    import type {Graph} from './types';
+    import type {GraphData} from './types';
 
     export let width = window.innerWidth - 10;
     export let height = window.innerHeight - 10;
@@ -28,10 +28,11 @@
         caption: d3.Selection<any, any, any, any>,
         stats: d3.Selection<any, any, any, any>
     }
+
     let selections: Selections | null = null;
-    export let data: Graph | null = null;
+    export let graphData: GraphData | null = null;
     $: {
-        updateData(data);
+        updateData(graphData);
     }
 
     let simulation = d3.forceSimulation()
@@ -80,27 +81,27 @@
     let svgElement;
     let zoom;
 
-    function nodes() {
-        return data.nodes || []
+    function nodes(gd: GraphData | null) {
+        return gd?.nodes || []
     }
 
-    function links() {
-        return data.links || []
+    function links(gd: GraphData | null) {
+        return gd?.links || []
     }
 
     // These are needed for captions
-    function linkTypes() {
+    function linkTypes(gd: GraphData | null) {
         const linkTypes = []
-        links().forEach(link => {
+        links(gd).forEach(link => {
             if (linkTypes.indexOf(link.type) === -1)
                 linkTypes.push(link.type)
         })
         return linkTypes.sort()
     }
 
-    function classes() {
+    function classes(gd: GraphData | null) {
         const classes = []
-        nodes().forEach(node => {
+        nodes(gd).forEach(node => {
             if (classes.indexOf(node.class) === -1)
                 classes.push(node.class)
         })
@@ -108,7 +109,7 @@
     }
 
     function tick() {
-        if (!data || !selections) {
+        if (!graphData || !selections) {
             return
         }
         const transform = d => {
@@ -131,26 +132,29 @@
         updateNodeLinkCount()
     }
 
-    function updateData(data: Graph | null) {
-        simulation.nodes(nodes())
-        simulation.force("link").links(links())
+    function updateData(graph: GraphData | null) {
 
-        if (!selections) { return }
+        simulation.nodes(nodes(graph))
+        simulation.force("link").links(links(graph))
+
+        if (!selections) {
+            return
+        }
 
         // Links should only exit if not needed anymore
         selections.graph.selectAll("path")
-            .data(links())
+            .data(links(graph))
             .exit().remove()
 
         selections.graph.selectAll("path")
-            .data(links())
+            .data(links(graph))
             .enter().append("path")
             .attr("class", d => "link " + d.type)
 
         // Nodes should always be redrawn to avoid lines above them
         selections.graph.selectAll("circle").remove()
         selections.graph.selectAll("circle")
-            .data(nodes())
+            .data(nodes(graph))
             .enter().append("circle")
             .attr("r", 30)
             .attr("class", d => d.class)
@@ -164,7 +168,7 @@
 
         selections.graph.selectAll("text").remove()
         selections.graph.selectAll("text")
-            .data(nodes())
+            .data(nodes(graph))
             .enter().append("text")
             .attr("x", 0)
             .attr("y", ".31em")
@@ -172,8 +176,7 @@
             .text(d => d.name)
 
         // Add 'marker-end' attribute to each path
-        const svg = d3.select(svgElement)
-        svg.selectAll("g").selectAll("path").attr("marker-end", d => {
+        selections.svg.selectAll("g").selectAll("path").attr("marker-end", d => {
             // Caption items doesn't have source and target
             if (d.source && d.target &&
                 d.source.index === d.target.index) return "url(#end-self)";
@@ -213,9 +216,11 @@
     }
 
     function updateNodeLinkCount() {
-        if (!selections) { return }
-        let nodeCount = nodes().length;
-        let linkCount = links().length;
+        if (!selections) {
+            return
+        }
+        let nodeCount = nodes(graphData).length;
+        let linkCount = links(graphData).length;
 
         const highlightedNodes = selections.graph.selectAll("circle.highlight");
         const highlightedLinks = selections.graph.selectAll("path.highlight");
@@ -227,18 +232,20 @@
     }
 
     function updateCaption() {
-        if (!selections) { return }
+        if (!selections) {
+            return
+        }
         // WARNING: Some gross math will happen here!
         const lineHeight = 30
         const lineMiddle = (lineHeight / 2)
         const captionXPadding = 28
         const captionYPadding = 5
-        const _linkTypes = linkTypes()
+        const _linkTypes = linkTypes(graphData)
 
         const caption = selections.caption;
         caption.select('rect')
             .attr('height', (captionYPadding * 2) + lineHeight *
-                (classes().length + _linkTypes.length))
+                (classes(graphData).length + _linkTypes.length))
 
         const linkLine = (d) => {
             const source = {
@@ -269,7 +276,7 @@
             .text((d) => d);
 
         const classCaption = caption.append('g');
-        const _classes = classes();
+        const _classes = classes(graphData);
         classCaption.selectAll('circle')
             .data(_classes)
             .enter().append('circle')
@@ -299,7 +306,9 @@
     }
 
     function zoomed(e) {
-        if (!selections) { return }
+        if (!selections) {
+            return
+        }
         const transform = e.transform
         // The trick here is to move the grid in a way that the user doesn't perceive
         // that the axis aren't really moving
@@ -344,7 +353,9 @@
     }
 
     function nodeMouseOver(event, d) {
-        if (!selections) { return }
+        if (!selections) {
+            return
+        }
 
         const related = []
         const relatedLinks = []
@@ -380,7 +391,9 @@
     }
 
     function nodeMouseOut(event, d) {
-        if (!selections) { return }
+        if (!selections) {
+            return
+        }
         const circle = selections.graph.selectAll("circle")
         const path = selections.graph.selectAll("path")
         const text = selections.graph.selectAll("text")
@@ -396,7 +409,9 @@
     }
 
     function nodeClick(event, d) {
-        if (!selections) { return }
+        if (!selections) {
+            return
+        }
         const circle = selections.graph.selectAll("circle")
         circle.classed('selected', false)
         circle.filter((td) => td === d)

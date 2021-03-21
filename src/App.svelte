@@ -12,7 +12,7 @@
     loadData();
 </script>
 
-<DependencyGraph data="{data}"/>
+<DependencyGraph graphData="{data}"/>
 
 <style>
 </style>
