@@ -1,4 +1,4 @@
-<script>
+<script lang="ts">
     import DependencyGraph from './DependencyGraph.svelte';
     import * as d3 from "d3";
 

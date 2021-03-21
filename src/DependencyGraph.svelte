@@ -11,16 +11,25 @@
     </svg>
 </div>
 
-<script>
+<script lang="ts">
     import * as d3 from 'd3';
     import {onMount} from 'svelte';
+    import type {Graph} from './types';
 
     export let width = window.innerWidth - 10;
     export let height = window.innerHeight - 10;
     export let gridSize = 100;
     let innerGridSize = gridSize / 10;
-    let selections = {};
-    export let data = {};
+
+    interface Selections {
+        svg: d3.Selection<any, any, any, any>,
+        grid: d3.Selection<any, any, any, any>,
+        graph: d3.Selection<any, any, any, any>,
+        caption: d3.Selection<any, any, any, any>,
+        stats: d3.Selection<any, any, any, any>
+    }
+    let selections: Selections | null = null;
+    export let data: Graph | null = null;
     $: {
         updateData(data);
     }
@@ -99,7 +108,7 @@
     }
 
     function tick() {
-        if (!data || !selections.graph) {
+        if (!data || !selections) {
             return
         }
         const transform = d => {
@@ -119,16 +128,15 @@
         selections.graph.selectAll("circle").attr("transform", transform)
         selections.graph.selectAll("text").attr("transform", transform)
 
-        //updateNodeLinkCount()
+        updateNodeLinkCount()
     }
 
-    function updateData(data) {
+    function updateData(data: Graph | null) {
         simulation.nodes(nodes())
         simulation.force("link").links(links())
 
-        if (!selections.graph) {
-            return
-        }
+        if (!selections) { return }
+
         // Links should only exit if not needed anymore
         selections.graph.selectAll("path")
             .data(links())
@@ -205,6 +213,7 @@
     }
 
     function updateNodeLinkCount() {
+        if (!selections) { return }
         let nodeCount = nodes().length;
         let linkCount = links().length;
 
@@ -218,6 +227,7 @@
     }
 
     function updateCaption() {
+        if (!selections) { return }
         // WARNING: Some gross math will happen here!
         const lineHeight = 30
         const lineMiddle = (lineHeight / 2)
@@ -289,6 +299,7 @@
     }
 
     function zoomed(e) {
+        if (!selections) { return }
         const transform = e.transform
         // The trick here is to move the grid in a way that the user doesn't perceive
         // that the axis aren't really moving
@@ -333,6 +344,7 @@
     }
 
     function nodeMouseOver(event, d) {
+        if (!selections) { return }
 
         const related = []
         const relatedLinks = []
@@ -368,6 +380,7 @@
     }
 
     function nodeMouseOut(event, d) {
+        if (!selections) { return }
         const circle = selections.graph.selectAll("circle")
         const path = selections.graph.selectAll("path")
         const text = selections.graph.selectAll("text")
@@ -383,6 +396,7 @@
     }
 
     function nodeClick(event, d) {
+        if (!selections) { return }
         const circle = selections.graph.selectAll("circle")
         circle.classed('selected', false)
         circle.filter((td) => td === d)
@@ -392,8 +406,7 @@
     onMount(() => {
         updateForces(); // set defaults
 
-        selections.svg = d3.select(svgElement)
-        const svg = selections.svg
+        const svg = d3.select(svgElement)
 
         // Define the arrow marker
         svg.append("svg:defs").selectAll("marker")
@@ -434,30 +447,37 @@
         // the + 10% and negative index to create an infinite grid feel
         // The precedence of this element is important since you'll have
         // click events on the elements above the grid
-        selections.grid = svg.append('rect')
+        const grid = svg.append('rect')
             .attr('x', '-10%')
             .attr('y', '-10%')
             .attr('width', '410%')
             .attr('height', '410%')
             .attr('fill', 'url(#grid)')
 
-        selections.graph = svg.append("g")
-        const graph = selections.graph
+        const graph = svg.append("g")
 
         // Node and link count is nice :)
-        selections.stats = svg.append('text')
+        const stats = svg.append('text')
             .attr('x', '1%')
             .attr('y', '98%')
             .attr('text-anchor', 'left');
 
         // Some caption
-        selections.caption = svg.append('g');
-        selections.caption.append('rect')
+        const caption = svg.append('g');
+        caption.append('rect')
             .attr('width', '200')
             .attr('height', '0')
             .attr('rx', '10')
             .attr('ry', '10')
             .attr('class', 'caption');
+
+        selections = {
+            svg: svg,
+            grid: grid,
+            graph: graph,
+            caption: caption,
+            stats: stats
+        }
     })
 </script>
 
