@@ -1,6 +1,7 @@
 {
-  "name": "svelte-app",
-  "version": "1.0.0",
+  "name": "d3-dependency-navigator",
+  "version": "0.1.0",
+  "license": "Apache 2",
   "devDependencies": {
     "@tsconfig/svelte": "^1.0.10",
     "@types/d3": "^6.3.0",
