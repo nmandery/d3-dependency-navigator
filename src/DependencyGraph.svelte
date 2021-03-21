@@ -17,10 +17,14 @@
 
     export let width = window.innerWidth - 10;
     export let height = window.innerHeight - 10;
-    let gridSize = 100;
+    export let gridSize = 100;
     let innerGridSize = gridSize / 10;
     let selections = {};
-    let data = {};
+    export let data = {};
+    $: {
+        updateData(data);
+    }
+
     let simulation = d3.forceSimulation()
         .force("link", d3.forceLink())
         .force("charge", d3.forceManyBody())
@@ -67,22 +71,12 @@
     let svgElement;
     let zoom;
 
-    //$: updateForces();
-    //$: updateData();
-
-    function loadData() {
-        d3.json('dependencies.json').then(d => {
-            data = d;
-            updateData();
-        })
-    }
-
     function nodes() {
-        return data.nodes
+        return data.nodes || []
     }
 
     function links() {
-        return data.links
+        return data.links || []
     }
 
     // These are needed for captions
@@ -105,7 +99,7 @@
     }
 
     function tick() {
-        if (!data) {
+        if (!data || !selections.graph) {
             return
         }
         const transform = d => {
@@ -128,10 +122,13 @@
         //updateNodeLinkCount()
     }
 
-    function updateData() {
+    function updateData(data) {
         simulation.nodes(nodes())
         simulation.force("link").links(links())
 
+        if (!selections.graph) {
+            return
+        }
         // Links should only exit if not needed anymore
         selections.graph.selectAll("path")
             .data(links())
@@ -335,7 +332,7 @@
         d.fy = null
     }
 
-    function nodeMouseOver(d) {
+    function nodeMouseOver(event, d) {
 
         const related = []
         const relatedLinks = []
@@ -370,7 +367,7 @@
         simulation.alphaTarget(0.0001).restart()
     }
 
-    function nodeMouseOut(d) {
+    function nodeMouseOut(event, d) {
         const circle = selections.graph.selectAll("circle")
         const path = selections.graph.selectAll("path")
         const text = selections.graph.selectAll("text")
@@ -385,7 +382,7 @@
         simulation.restart()
     }
 
-    function nodeClick(d) {
+    function nodeClick(event, d) {
         const circle = selections.graph.selectAll("circle")
         circle.classed('selected', false)
         circle.filter((td) => td === d)
@@ -461,7 +458,6 @@
             .attr('rx', '10')
             .attr('ry', '10')
             .attr('class', 'caption');
-        loadData();
     })
 </script>
 
